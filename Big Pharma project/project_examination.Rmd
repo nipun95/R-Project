@@ -1,0 +1,345 @@
+---
+title: 'Examination Project'
+author: 'Christina Autoshi Baidya'
+email: 'Baidya.Christinaautoshi.7374@student.uu.se'
+date: '04-12-18'
+mainfont: 
+sansfont: 
+mathfont: 
+monofont: 
+fontsize: 
+output: 
+ html_document: 
+    code_folding: show
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+```{r load packages, message = FALSE}
+library(tidyr)    # used for putting data into long format
+library(knitr)    # used for creation of the report
+
+```
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, tidy.opts = list(width.cutoff = 60))
+```
+
+
+
+
+# Environment setup
+
+```{r define drug concentrations path}
+dir_name_drug  <- '../desktop/exam project'
+file_name_drug  <- 'Big_Pharma_BPI889_data_200mg_26.csv'
+file_path_drug  <- paste(dir_name_drug, file_name_drug, sep = '')    #These commands for drug file directory 
+```
+```{r define mutation concentrations path}
+dir_name_mutation  <- '../desktop/exam project'
+file_name_mutation  <- 'stu26.csv'
+file_path_mutation <- paste(dir_name_mutation, file_name_mutation, sep = '')    #These commands for mutation file directory
+```
+
+
+# data import
+
+```{r read-in drug}
+read.csv(file = 'Big_Pharma_BPI889_data_200mg_26.csv', header = TRUE, as.is = TRUE)
+data_pk <- read.csv(file = 'Big_Pharma_BPI889_data_200mg_26.csv', header = TRUE, as.is = TRUE, na.strings = ',')  #read.csv command to read csv file
+```
+
+
+```{r read-in mutation}
+read.csv(file = 'stu26.csv', header = TRUE, as.is = TRUE)
+data_snp <- read.csv(file = 'stu26.csv', header = TRUE, as.is = TRUE, na.strings = ',') #read.csv command to read csv file
+```
+
+# Data check-out
+This section should contain any data check-out.
+
+### Structure of the  data sets
+
+```{r drug structure}
+str(data_pk)
+```
+
+
+```{r drug head}
+head(data_pk)
+```
+
+
+```{r mutation structure}
+str(data_snp)
+```
+
+```{r mutation head}
+head(data_snp)
+```
+
+
+```{r drug}
+colnames(data_pk)
+```
+```{r mutation}
+colnames(data_snp)
+```
+
+### Head of the `drug` Data Set
+
+
+```{r knitr kable example, eval = FALSE}
+kable(x = data_pk,
+      align = 'c',
+      row.names = FALSE,
+      caption = 'individual data')
+```
+
+
+```{r drug head table}
+head_PK <- head(data_pk, n = 5L)
+
+```
+
+
+### Head of the `mutation` Data Set
+
+```{r knitr kable example, eval = FALSE}
+kable(x = data_snp,
+      align = 'c',
+      row.names = FALSE,
+      caption = 'individual data')
+```
+
+```{r mutation head table}
+head_SNP <- head(data_snp, n = 5L)
+
+```
+
+# Data management 
+
+
+This section should contain all data manipulation needed to perform the examination project.
+
+## Set `ID` Column Name
+
+```{r mutation id column}
+colnames(data_snp)[1] <- c('ID')  #change the column name `X` to `ID`
+```
+
+```{r drug id column}
+colnames(data_pk)[1] <- c('ID')   #change the column name `X` to `ID`
+```
+
+
+###Convert mutation data as widtype, heterozygote, homozygote factor
+
+```{r Create new data}
+data_snp2 <- data_snp       #Create duplicate data of mutation
+```
+
+```{r convert T134A to factor}
+data_snp2[, c("T134A","A443G","G769C","G955C","A990C","G1051A","G1078T","T1941A","T2138C","G2638T")] <- lapply(data_snp2[, 
+            c("T134A","A443G","G769C","G955C","A990C","G1051A","G1078T","T1941A","T2138C","G2638T")],
+                      levels = c('0', '1', '2'),
+                      labels = c('widtype', 'heterozygote','homozygote'),factor)
+```
+
+
+```{r tidy mutation data}
+data_snp2 <- gather(data  = data_snp2,
+                  key   = Mutation,
+                  value = Type, -ID)    #Gather all data of `data_snp2` unless `ID` column
+```
+
+```{r}
+kable(x = data_snp2,
+      align = 'c',
+      row.names = FALSE,
+      caption = 'individual data')
+```
+
+
+###Set `Time` column name
+
+```{r Create new Data}
+data_pk2 <- data_pk     #Create duplicate data of drug
+```
+
+
+```{r drug Time column}
+colnames(data_pk2)[2] <- c('Time.30m')
+colnames(data_pk2)[4] <- c('Time.2h')
+colnames(data_pk2)[6] <- c('Time.6h')
+colnames(data_pk2)[7] <- c('Time.12h')
+colnames(data_pk2)[8] <- c('Time.24h')      #Set all Column names same as `Time.`
+```
+
+### Transform the Data Set to Long Format
+
+```{r tidy PK_02 data}
+data_pk2 <- gather(data  = data_pk2,
+                  key   = TIME,
+                  value = Concen, -ID , -Sex, -Weight..kg., -Height..cm.)    #Gather all data of `data_snp2` unless column `ID`,`Sex`,`Weight..kg.`,`Height..cm.`
+```
+
+### Create Numeric `Concentration` Column
+```{r}
+data_pk2$Concen = as.numeric(data_pk2$Concen)
+```
+
+
+```{r PK_02 head long}
+nrow(data_pk2)
+ncol(data_pk2)
+head_PK2 <- head(data_pk2, n = 5L)
+kable(x = head_PK2,
+      align = 'c',
+      row.names = FALSE,
+      caption = 'individual data-long format')
+```
+
+### Remove `Time` from time
+```{r convert time numeric}
+data_pk2$TIME <- gsub('Time.','',data_pk2$TIME)   #Remove `Time.` from column `TIME`
+```
+
+```{r}
+kable(x = data_pk2,
+      align = 'c',
+      row.names = FALSE,
+      caption = 'individual data')
+```
+
+###Save data as `rdata` formate
+```{r save cov data set as RData}
+dir <- '../new R/'
+save(data_pk2, file = 'Big_Pharma_BPI889_data_200mg_26.rdata')
+```
+
+
+
+# Data summary
+This section should contain the numerical data exploration for the project team.
+
+##summary full data
+```{r summary all data}
+data_merge <- merge(data_pk2, data_snp2)
+summary(data_merge)
+```
+
+
+### Create Numeric `Weight..kg. & Weight..kg.` Column
+```{r convert Weight..kg. & Height..cm. numeric}
+data_merge$Weight..kg. = as.numeric(data_merge$Weight..kg.)
+data_merge$Height..cm. = as.numeric(data_merge$Height..cm.)
+```
+
+
+##Summary individually
+```{r merged data}
+summary(data_merge[,c('Weight..kg.', 'Height..cm.','Concen')])   #Summary of Weight..kg, Height..cm, Concen
+```
+
+
+
+```{r merged data}
+summary(data_merge[,c('Mutation','Type')])    #Summary of Mutation & Type
+```
+
+
+#Create Unique data
+```{r  merged data}
+data_unique <- data_merge[!duplicated(data_merge$ID), ]
+```
+
+
+# Graphical exploration
+This section should contain the graphical data exploration for the project team.
+
+### Distribution
+```{r histograms, fig.height = 5, fig.width = 5}
+par(mfrow = c(1, 3))
+for (cov in c('Weight..kg.', 'Height..cm.', 'Concen')) { 
+  # Add code for the plot here
+  hist(x = data_unique[,cov], xlab = NA, main = cov)
+  }
+```
+
+### Correlation Matrix
+```{r pairs plot}
+# This is an example do not write code here
+pairs(data_unique[,c('Weight..kg.', 'Height..cm.', 'Concen')],
+      upper.panel = NULL,
+      lower.panel = panel.smooth, 
+      pch = 20)
+```
+
+### Box Plots
+```{r boxplots}
+par(mfrow = c(2, 2))
+boxplot(Weight..kg.~Height..cm., data = data_unique, main = 'Weight..kg.~Height..cm.')
+boxplot(Height..cm.~Concen, data = data_unique, main = 'Height..cm.~Concen')
+boxplot(Weight..kg.~Concen, data = data_unique, main = 'Weight..kg.~Concen')
+
+```
+
+# Pharmacokinetic Calculations
+This section should contain relevant calculations of PK parameters.
+#Create new data frame
+```{r}
+data_pk3 <- data_pk     #Create duplicate data of drug
+```
+
+```{r}
+data_pk3$Time...12h = as.numeric(data_pk3$Time...12h)
+data_pk3$Time...24h = as.numeric(data_pk3$Time...24h)
+```
+
+
+##Find the value of K
+```{r find the value of K}
+data_pk3[c(8,10,14),'K'] <- (-(log(data_pk3[c(8,10,14),'Time...12h']) - log(data_pk3[c(8,10,14),'time.6h'])) / (12-6))
+data_pk3$K <- round(data_pk3$K, 3)
+
+```
+
+##Find the missing value of Time...24
+```{r find the missing value}
+data_pk3[c(8,10,14), 'Time...24h'] <- round((data_pk3[c(8,10,14),'Time...12h']) * exp(-(data_pk3[c(8,10,14),'K'])*(24-12)),3)  #caltulation and roun together
+```
+
+##Find the value of AUC
+```{r find the missing value}
+data_pk3$AUC <-  round(((data_pk3$Time...24h) + (data_pk3$Time...12h)) * (1/5) * (24-12),3)  #caltulation and roun together
+```
+
+##Find the value of CL
+```{r find CL}
+data_pk3$CL <- round(200 / data_pk3$AUC, 1) 
+```
+
+```{r}
+data_pk3$Cav <-  round ((200 * 0.9) / (data_pk3$CL * data_pk3$Time...24h),3)
+```
+
+```{r}
+kable(x = data_pk3,
+      align = 'c',
+      row.names = FALSE,
+      caption = 'individual data')
+```
+
+# Covariate testing of PK parameters
+This section should contain relevant statistical testing of PK parameters and subject demographics.
+
+# Assessment of clinical impact
+This section should contain relevant evaluation of the clinical impact of the relationships identified in section above.
+
